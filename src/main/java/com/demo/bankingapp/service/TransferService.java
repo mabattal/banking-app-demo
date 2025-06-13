@@ -72,10 +72,17 @@ public class TransferService {
             throw new IllegalArgumentException("Insufficient balance");
         }
 
+        // TEST AMAÇLI GECİKME (Concurrent çakışmayı artırmak için)
+        try {
+            Thread.sleep(3000); // 3 saniye bekle
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // iyi pratik
+            throw new RuntimeException("Transfer interrupted", e);
+        }
+
         sender.setBalance(sender.getBalance().subtract(amount));
         receiver.setBalance(receiver.getBalance().add(amount));
 
-        // Versiyon kontrolü burada otomatik yapılır
         accountRepository.save(sender);
         accountRepository.save(receiver);
 
@@ -87,4 +94,5 @@ public class TransferService {
 
         transactionRepository.save(tx);
     }
+
 }
