@@ -20,42 +20,6 @@ public class TransferService {
     private final TransferTransactionRepository transactionRepository;
 
     @Transactional
-    public void transferWithPessimisticLock(Long senderAccountId, Long receiverAccountId, BigDecimal amount) {
-
-        if (senderAccountId.equals(receiverAccountId)) {
-            throw new IllegalArgumentException("Sender and receiver accounts must be different");
-        }
-
-        // Pessimistic Lock ile hesapları kilitleyerek çekiyoruz
-        Account sender = accountRepository.findByIdForUpdate(senderAccountId)
-                .orElseThrow(() -> new EntityNotFoundException("Sender account not found"));
-
-        Account receiver = accountRepository.findByIdForUpdate(receiverAccountId)
-                .orElseThrow(() -> new EntityNotFoundException("Receiver account not found"));
-
-        if (sender.getBalance().compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Insufficient balance");
-        }
-
-        // Bakiye güncelleme
-        sender.setBalance(sender.getBalance().subtract(amount));
-        receiver.setBalance(receiver.getBalance().add(amount));
-
-        // Hesapları kaydet
-        accountRepository.save(sender);
-        accountRepository.save(receiver);
-
-        // İşlem kaydı oluştur
-        TransferTransaction tx = new TransferTransaction();
-        tx.setSender(sender);
-        tx.setReceiver(receiver);
-        tx.setAmount(amount);
-        tx.setCreatedAt(LocalDateTime.now());
-
-        transactionRepository.save(tx);
-    }
-
-    @Transactional
     public void transferWithOptimisticLock(Long senderId, Long receiverId, BigDecimal amount) {
 
         if (senderId.equals(receiverId)) {
@@ -95,4 +59,46 @@ public class TransferService {
         transactionRepository.save(tx);
     }
 
+    @Transactional
+    public void transferWithPessimisticLock(Long senderAccountId, Long receiverAccountId, BigDecimal amount) {
+
+        if (senderAccountId.equals(receiverAccountId)) {
+            throw new IllegalArgumentException("Sender and receiver accounts must be different");
+        }
+
+        // Pessimistic Lock ile hesapları kilitleyerek çekiyoruz
+        Account sender = accountRepository.findByIdForUpdate(senderAccountId)
+                .orElseThrow(() -> new EntityNotFoundException("Sender account not found"));
+
+        Account receiver = accountRepository.findByIdForUpdate(receiverAccountId)
+                .orElseThrow(() -> new EntityNotFoundException("Receiver account not found"));
+
+        if (sender.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient balance");
+        }
+
+        try {
+            Thread.sleep(3000); // 3 saniye kilitli tut
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Transfer interrupted", e);
+        }
+
+        // Bakiye güncelleme
+        sender.setBalance(sender.getBalance().subtract(amount));
+        receiver.setBalance(receiver.getBalance().add(amount));
+
+        // Hesapları kaydet
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
+
+        // İşlem kaydı oluştur
+        TransferTransaction tx = new TransferTransaction();
+        tx.setSender(sender);
+        tx.setReceiver(receiver);
+        tx.setAmount(amount);
+        tx.setCreatedAt(LocalDateTime.now());
+
+        transactionRepository.save(tx);
+    }
 }
