@@ -101,4 +101,42 @@ public class TransferService {
 
         transactionRepository.save(tx);
     }
+
+    @Transactional
+    public void transferWithRollbackTest(Long senderId, Long receiverId, BigDecimal amount) {
+
+        if (senderId.equals(receiverId)) {
+            throw new IllegalArgumentException("Sender and receiver accounts must be different");
+        }
+
+        Account sender = accountRepository.findById(senderId)
+                .orElseThrow(() -> new EntityNotFoundException("Sender not found"));
+
+        Account receiver = accountRepository.findById(receiverId)
+                .orElseThrow(() -> new EntityNotFoundException("Receiver not found"));
+
+        if (sender.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient balance");
+        }
+
+        sender.setBalance(sender.getBalance().subtract(amount));
+        receiver.setBalance(receiver.getBalance().add(amount));
+
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
+
+        // Burası işlemi yarıda kesecek
+        if (true) {
+            throw new RuntimeException("Intentional failure to test rollback");
+        }
+
+        TransferTransaction tx = new TransferTransaction();
+        tx.setSender(sender);
+        tx.setReceiver(receiver);
+        tx.setAmount(amount);
+        tx.setCreatedAt(LocalDateTime.now());
+
+        transactionRepository.save(tx);
+    }
+
 }

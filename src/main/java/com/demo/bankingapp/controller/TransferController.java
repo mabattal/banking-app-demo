@@ -40,4 +40,17 @@ public class TransferController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed due to concurrent modification");
         }
     }
+
+    @PostMapping("/rollback")
+    public ResponseEntity<String> testRollback(@RequestParam Long senderId,
+                                               @RequestParam Long receiverId,
+                                               @RequestParam BigDecimal amount) {
+        try {
+            transferService.transferWithRollbackTest(senderId, receiverId, amount);
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed as expected: " + e.getMessage());
+        }
+    }
+
 }
