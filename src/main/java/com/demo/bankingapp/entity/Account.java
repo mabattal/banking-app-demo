@@ -9,7 +9,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "wallets")
+@Table(name = "accounts")
 @Getter
 @Setter
 @NoArgsConstructor
