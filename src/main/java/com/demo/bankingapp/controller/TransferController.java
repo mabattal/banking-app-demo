@@ -1,5 +1,6 @@
 package com.demo.bankingapp.controller;
 
+import com.demo.bankingapp.helper.TransferRetryExecutor;
 import com.demo.bankingapp.service.TransferService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.math.BigDecimal;
 public class TransferController {
 
     private final TransferService transferService;
+    private final TransferRetryExecutor transferRetryExecutor;
 
     @PostMapping("/pessimistic/")
     public ResponseEntity<String> withPessimisticLock(@RequestParam Long senderId,
@@ -34,7 +36,7 @@ public class TransferController {
                                                              @RequestParam Long receiverId,
                                                              @RequestParam BigDecimal amount) {
         try {
-            transferService.transferWithOptimisticLock(senderId, receiverId, amount);
+            transferRetryExecutor.executeTransferWithRetry(senderId, receiverId, amount);
             return ResponseEntity.ok("Transfer successful with optimistic lock");
         } catch (ObjectOptimisticLockingFailureException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed due to concurrent modification");

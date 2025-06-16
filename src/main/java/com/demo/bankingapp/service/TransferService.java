@@ -18,38 +18,28 @@ public class TransferService {
 
     private final AccountRepository accountRepository;
     private final TransferTransactionRepository transactionRepository;
+    private final AccountService accountService;
 
     @Transactional
     public void transferWithOptimisticLock(Long senderId, Long receiverId, BigDecimal amount) {
-
         if (senderId.equals(receiverId)) {
             throw new IllegalArgumentException("Sender and receiver accounts must be different");
         }
 
-        Account sender = accountRepository.findById(senderId)
-                .orElseThrow(() -> new EntityNotFoundException("Sender account not found"));
-
-        Account receiver = accountRepository.findById(receiverId)
-                .orElseThrow(() -> new EntityNotFoundException("Receiver account not found"));
-
+        Account sender = accountService.getById(senderId);
         if (sender.getBalance().compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient balance");
         }
 
-        // TEST AMAÇLI GECİKME (Concurrent çakışmayı artırmak için)
-        try {
-            Thread.sleep(3000); // 3 saniye bekle
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // iyi pratik
-            throw new RuntimeException("Transfer interrupted", e);
-        }
+        Account receiver = accountService.getById(receiverId);
 
-        sender.setBalance(sender.getBalance().subtract(amount));
-        receiver.setBalance(receiver.getBalance().add(amount));
+        accountService.withdrawMoney(sender, amount);
+        accountService.depositMoney(receiver, amount);
 
-        accountRepository.save(sender);
-        accountRepository.save(receiver);
+        createTransferRecord(sender, receiver, amount);
+    }
 
+    public void createTransferRecord(Account sender, Account receiver, BigDecimal amount) {
         TransferTransaction tx = new TransferTransaction();
         tx.setSender(sender);
         tx.setReceiver(receiver);
@@ -85,21 +75,11 @@ public class TransferService {
         }
 
         // Bakiye güncelleme
-        sender.setBalance(sender.getBalance().subtract(amount));
-        receiver.setBalance(receiver.getBalance().add(amount));
-
-        // Hesapları kaydet
-        accountRepository.save(sender);
-        accountRepository.save(receiver);
+        accountService.withdrawMoney(sender, amount);
+        accountService.depositMoney(receiver, amount);
 
         // İşlem kaydı oluştur
-        TransferTransaction tx = new TransferTransaction();
-        tx.setSender(sender);
-        tx.setReceiver(receiver);
-        tx.setAmount(amount);
-        tx.setCreatedAt(LocalDateTime.now());
-
-        transactionRepository.save(tx);
+        createTransferRecord(sender, receiver, amount);
     }
 
     @Transactional
@@ -109,34 +89,23 @@ public class TransferService {
             throw new IllegalArgumentException("Sender and receiver accounts must be different");
         }
 
-        Account sender = accountRepository.findById(senderId)
-                .orElseThrow(() -> new EntityNotFoundException("Sender not found"));
-
-        Account receiver = accountRepository.findById(receiverId)
-                .orElseThrow(() -> new EntityNotFoundException("Receiver not found"));
-
+        Account sender = accountService.getById(senderId);
         if (sender.getBalance().compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient balance");
         }
 
-        sender.setBalance(sender.getBalance().subtract(amount));
-        receiver.setBalance(receiver.getBalance().add(amount));
+        Account receiver = accountService.getById(receiverId);
 
-        accountRepository.save(sender);
-        accountRepository.save(receiver);
+        // Bakiye güncelleme
+        accountService.withdrawMoney(sender, amount);
+        accountService.depositMoney(receiver, amount);
 
         // Burası işlemi yarıda kesecek
         if (true) {
             throw new RuntimeException("Intentional failure to test rollback");
         }
 
-        TransferTransaction tx = new TransferTransaction();
-        tx.setSender(sender);
-        tx.setReceiver(receiver);
-        tx.setAmount(amount);
-        tx.setCreatedAt(LocalDateTime.now());
-
-        transactionRepository.save(tx);
+        createTransferRecord(sender, receiver, amount);
     }
 
 }

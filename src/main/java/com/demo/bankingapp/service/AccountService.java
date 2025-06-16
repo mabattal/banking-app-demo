@@ -45,4 +45,14 @@ public class AccountService {
     public List<Account> getAllAccounts() {
         return accountRepository.findAll();
     }
+
+    public void withdrawMoney(Account account, BigDecimal amount) {
+        account.setBalance(account.getBalance().subtract(amount));
+        accountRepository.save(account);
+    }
+
+    public void depositMoney(Account account, BigDecimal amount) {
+        account.setBalance(account.getBalance().add(amount));
+        accountRepository.save(account);
+    }
 }
