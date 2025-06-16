@@ -7,6 +7,7 @@ import com.demo.bankingapp.repository.TransferTransactionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 public class TransferService {
 
     private final AccountRepository accountRepository;
-    private final TransferTransactionRepository transactionRepository;
+    private final TransferTransactionRepository transferTransactionRepository;
     private final AccountService accountService;
 
     @Transactional
@@ -46,12 +47,11 @@ public class TransferService {
         tx.setAmount(amount);
         tx.setCreatedAt(LocalDateTime.now());
 
-        transactionRepository.save(tx);
+        transferTransactionRepository.save(tx);
     }
 
     @Transactional
     public void transferWithPessimisticLock(Long senderAccountId, Long receiverAccountId, BigDecimal amount) {
-
         if (senderAccountId.equals(receiverAccountId)) {
             throw new IllegalArgumentException("Sender and receiver accounts must be different");
         }
@@ -80,6 +80,50 @@ public class TransferService {
 
         // İşlem kaydı oluştur
         createTransferRecord(sender, receiver, amount);
+    }
+
+    @Transactional
+    public void transferWithPessimisticLock2(Long senderAccountId, Long receiverAccountId, BigDecimal amount, Long transactionId) {
+        performMoneyTransfer(senderAccountId, receiverAccountId, amount);
+        try {
+            updateTransferRecordInNewTransaction(senderAccountId, receiverAccountId, amount, transactionId);
+        } catch (EntityNotFoundException e) {
+
+            System.err.println("Transfer transaction not found: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    protected void performMoneyTransfer(Long senderAccountId, Long receiverAccountId, BigDecimal amount) {
+        if (senderAccountId.equals(receiverAccountId)) {
+            throw new IllegalArgumentException("Sender and receiver accounts must be different");
+        }
+
+        Account sender = accountService.getById(senderAccountId);
+        if (sender.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient balance");
+        }
+
+        Account receiver = accountService.getById(receiverAccountId);
+
+        accountService.withdrawMoney(sender, amount);
+        accountService.depositMoney(receiver, amount);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected void updateTransferRecordInNewTransaction(Long senderAccountId, Long receiverAccountId, BigDecimal amount, Long transactionId) {
+        Account sender = accountService.getById(senderAccountId);
+        Account receiver = accountService.getById(receiverAccountId);
+
+        TransferTransaction tx = transferTransactionRepository.findByIdForUpdate(transactionId)
+                .orElseThrow(() -> new EntityNotFoundException("Transfer transaction not found"));
+
+        tx.setSender(sender);
+        tx.setReceiver(receiver);
+        tx.setAmount(amount);
+        tx.setCreatedAt(LocalDateTime.now());
+
+        transferTransactionRepository.save(tx);
     }
 
     @Transactional

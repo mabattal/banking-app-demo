@@ -42,6 +42,11 @@ public class AccountService {
                 .orElseThrow(() -> new EntityNotFoundException("Account not found"));
     }
 
+    public Account getByIdForUpdate(Long id) {
+        return accountRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new EntityNotFoundException("Account not found for update"));
+    }
+
     public List<Account> getAllAccounts() {
         return accountRepository.findAll();
     }

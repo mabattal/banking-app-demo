@@ -13,8 +13,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     Optional<Account> findByUserId(Long userId);
 
-//    Burada findByIdForUpdate metodu, Pessimistic Lock için kullanılır.
-//    Böylece iki işlem aynı hesabı aynı anda güncelleyemez.
+    //Burada findByIdForUpdate metodu, Pessimistic Lock için kullanılır.
+    //Böylece iki işlem aynı hesabı aynı anda güncelleyemez.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Account a WHERE a.id = :id")
     Optional<Account> findByIdForUpdate(@Param("id") Long id);

@@ -25,10 +25,24 @@ public class TransferController {
 
     @PostMapping("/pessimistic/")
     public ResponseEntity<String> withPessimisticLock(@RequestParam Long senderId,
-                                                     @RequestParam Long receiverId,
-                                                     @RequestParam BigDecimal amount) {
+                                                      @RequestParam Long receiverId,
+                                                      @RequestParam BigDecimal amount) {
         transferService.transferWithPessimisticLock(senderId, receiverId, amount);
         return ResponseEntity.ok("Transfer successful with pessimistic lock");
+    }
+
+    @PostMapping("/pessimistic2/")
+    public ResponseEntity<String> withPessimisticLock2(@RequestParam Long senderId,
+                                                       @RequestParam Long receiverId,
+                                                       @RequestParam BigDecimal amount,
+                                                       @RequestParam Long transactionId) {
+        try {
+            transferService.transferWithPessimisticLock2(senderId, receiverId, amount, transactionId);
+            return ResponseEntity.ok("Transfer başarılı ve kayıt güncellendi");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                    .body(e.getMessage());
+        }
     }
 
     @PostMapping("/optimistic/")
