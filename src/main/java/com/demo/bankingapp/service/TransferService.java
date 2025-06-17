@@ -7,7 +7,6 @@ import com.demo.bankingapp.repository.TransferTransactionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -145,11 +144,10 @@ public class TransferService {
         accountService.depositMoney(receiver, amount);
 
         // Burası işlemi yarıda kesecek
-        if (true) {
-            throw new RuntimeException("Intentional failure to test rollback");
-        }
+//        if (true) {
+//            throw new RuntimeException("Intentional failure to test rollback");
+//        }
 
         createTransferRecord(sender, receiver, amount);
     }
-
 }
