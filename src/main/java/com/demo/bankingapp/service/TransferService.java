@@ -88,8 +88,8 @@ public class TransferService {
         try {
             updateTransferRecordInNewTransaction(senderAccountId, receiverAccountId, amount, transactionId);
         } catch (EntityNotFoundException e) {
-
-            System.err.println("Transfer transaction not found: " + e.getMessage());
+            //throw dönmek yerine, hata mesajını loglayabiliriz. throw dönersek rollback yapar.
+            System.err.println(e.getMessage());
         }
     }
 
@@ -110,7 +110,7 @@ public class TransferService {
         accountService.depositMoney(receiver, amount);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     protected void updateTransferRecordInNewTransaction(Long senderAccountId, Long receiverAccountId, BigDecimal amount, Long transactionId) {
         Account sender = accountService.getById(senderAccountId);
         Account receiver = accountService.getById(receiverAccountId);
