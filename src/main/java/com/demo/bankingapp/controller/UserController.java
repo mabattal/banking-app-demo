@@ -42,8 +42,19 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    @GetMapping("/name/{fullName}")
+    public ResponseEntity<User> getUserByFullName(@PathVariable String fullName) {
+        User user = userService.getByFullName(fullName);
+        return ResponseEntity.ok(user);
+    }
+
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAll());
+    }
+
+    @DeleteMapping("/cacheClear")
+    public String clearCache() {
+        return userService.clearCache();
     }
 }
