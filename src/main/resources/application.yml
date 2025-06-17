@@ -1,6 +1,6 @@
 spring:
   cache:
-    type: none
+    type: simple
   application:
     name: banking-app
   datasource:
