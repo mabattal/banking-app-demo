@@ -1,6 +1,10 @@
 spring:
   cache:
-    type: simple
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
   application:
     name: banking-app
   datasource:
